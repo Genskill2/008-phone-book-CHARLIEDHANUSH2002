@@ -62,19 +62,27 @@ int main(int argc, char *argv[]) {
     fclose(fp);
     exit(0);
   } else if (strcmp(argv[1], "search") == 0) {  /* Handle search */
-    if(argc != 3){
-       print_usage("Improper arguments for search", argv[0]);
-      exit(1);
-    }/* TBD  */
+       /* TBD  */
     FILE *fp = open_db_file();
-    char *name = argv[2];
-    if (!search(fp, name)) {
-      printf("no match\n");
+    char *name=argv[2];
+    entry *p=load_entries(fp);
+    entry *base=p;
+    while(p!=NULL){
+      if(strcmp(name,p->name) == 0){
+        printf("%s",p->phone);
+        break;
+      }
+      p=p->next;
+    }
+    if(p==NULL){
+      printf("no match");
+      free_entries(base);
       fclose(fp);
       exit(1);
     }
+    free_entries(base);
     fclose(fp);
-    exit(0); 
+    exit(0);  
   } else if (strcmp(argv[1], "delete") == 0) {  /* Handle delete */
     if (argc != 3) {
       print_usage("Improper arguments for delete", argv[0]);
@@ -105,13 +113,14 @@ FILE *open_db_file() {
 }
   
 void free_entries(entry *p) {
-  /* TBD */
- while(p!=NULL){
-  free(p);
-  p =p->next;
- }
-  
-  //printf("Memory is not being freed. This needs to be fixed!\n");  
+  /*TBD*/
+  entry *q;
+  q=p;
+  while(p){
+    q=p;
+    p=p->next;
+    free(q);
+  }
 }
 
 void print_usage(char *message, char *progname) {
@@ -188,37 +197,19 @@ void add(char *name, char *phone) {
   fprintf(fp, "%s,%s\n", name, phone);
   fclose(fp);
 }
-int search(FILE *db_file,char *name){
-  entry *p = load_entries(db_file);
-  entry *base = p;
-  int found = 0;
-  while(p!=NULL){
-  if(strcmp(p->name,name) == 0){
-  printf("%s\n",p->phone);
- 
-  found = 1;
-  }
-   p=p->next;
-  }
-  free_entries(base);
-  return found;
-}
 
-int size = 0;
 void list(FILE *db_file) {
   entry *p = load_entries(db_file);
   entry *base = p;
-  int count = 0;
+  int count=0;
   while (p!=NULL) {
     printf("%-20s : %10s\n", p->name, p->phone);
     count++;
     p=p->next;
   }
   /* TBD print total count */
-  size =count;
-  printf("Total entries :  %d\n",count);
+  printf("Total entries :  %d",count);
   free_entries(base);
- 
 }
 
 
@@ -228,7 +219,6 @@ int delete(FILE *db_file, char *name) {
   entry *prev = NULL;
   entry *del = NULL ; /* Node to be deleted */
   int deleted = 0;
-
   while (p!=NULL) {
     if (strcmp(p->name, name) == 0) {
       /* Matching node found. Delete it from the linked list.
@@ -243,21 +233,23 @@ int delete(FILE *db_file, char *name) {
       */
 
       /* TBD */
-      
-       if(strcmp(base->name, name) == 0){
-         base = p->next;
-       }
-      else{ p = p->next;
-      
-       prev->next = p;
-          }
-      
-       deleted = 1;
-       break;
-    }
-    else{
-      prev = p;
-      p = p->next;
+      if(p==base){
+        del=p;
+        p=p->next;
+        base=p;
+        deleted++;
+        free(del);
+      }else{
+        del=p;
+        prev->next=p->next;
+        p=p->next;
+        deleted++;
+        free(del);
+      }
+     
+    }else{
+       prev=p;
+       p=p->next;
     }
    
   }
